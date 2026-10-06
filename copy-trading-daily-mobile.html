@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<title>Copy Trading Daily</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0d12;color:#f5f7fb;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif}
+.wrap{max-width:680px;margin:auto;padding:18px 14px 100px}.top{padding:8px 2px 18px}.title{font-size:29px;font-weight:800}.sub{color:#9299a8;margin-top:5px}
+h2{font-size:19px;margin:22px 2px 12px}.platforms{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button,.platform{border:0;border-radius:16px;padding:15px;font-size:16px;font-weight:750;cursor:pointer}
+.platform{background:#171b24;color:#fff;text-align:left;border:1px solid #292f3c}.platform.active{background:#fff;color:#0b0d12}
+.accounts{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.account{background:#171b24;color:#fff;border:1px solid #292f3c;padding:14px 8px;border-radius:14px;font-weight:750}.account.active{background:#2f7cff;border-color:#2f7cff}
+.card{background:#12151d;border:1px solid #252b37;border-radius:20px;padding:15px;margin-top:15px}.cardhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.count{color:#9ca4b4;font-size:13px}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.slot{position:relative;aspect-ratio:1;background:#191e28;border:1px dashed #3a4251;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#9ca4b4;font-size:13px}.slot input{position:absolute;inset:0;opacity:0;cursor:pointer}.slot img{width:100%;height:100%;object-fit:cover}.num{position:absolute;left:6px;top:5px;background:#0b0d12cc;color:#fff;border-radius:8px;padding:2px 5px;font-size:11px;z-index:2}
+.clear{position:absolute;right:5px;top:5px;background:#0b0d12dd;color:#fff;border-radius:8px;padding:3px 6px;font-size:11px;z-index:3}
+.main{width:100%;margin-top:20px;background:#2f7cff;color:white}.reset{width:100%;margin-top:9px;background:#191e28;color:#cdd3df}
+.result{display:none}.row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #252b37}.row:last-child{border:0}.total{font-size:20px;font-weight:850;padding-top:16px}.hint{font-size:13px;color:#858d9d;line-height:1.4;margin-top:10px}
+@media(min-width:600px){.accounts{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="top"><div class="title">📊 Copy Trading Daily</div><div class="sub">Carica gli screen conto per conto.</div></div>
+
+ <h2>1. Piattaforma</h2>
+ <div class="platforms">
+  <button class="platform active" data-p="PU Prime">🔵 PU Prime<br><small>12 conti</small></button>
+  <button class="platform" data-p="TMGM">🔴 TMGM<br><small>4 conti</small></button>
+ </div>
+
+ <h2>2. Seleziona conto</h2>
+ <div id="accounts" class="accounts"></div>
+
+ <div id="workspace"></div>
+
+ <button id="daily" class="main">📊 CREA IL GIORNALIERO</button>
+ <button id="reset" class="reset">↺ Azzera tutto</button>
+
+ <div id="result" class="card result">
+  <h2 style="margin:0 0 8px">Giornaliero</h2>
+  <div id="results"></div>
+  <div class="hint">Il sito organizza gli screenshot. Il calcolo automatico del risultato verrà collegato al formato reale dei tuoi screen.</div>
+ </div>
+</div>
+
+<script>
+const state={platform:"PU Prime",selected:1,data:{PU Prime:{},TMGM:{}}};
+const slots=16;
+const $=s=>document.querySelector(s);
+function renderAccounts(){
+ const n=state.platform==="PU Prime"?12:4, el=$("#accounts"); el.innerHTML="";
+ for(let i=1;i<=n;i++){let b=document.createElement("button");b.className="account"+(i===state.selected?" active":"");b.textContent="Conto "+i;b.onclick=()=>{state.selected=i;renderAccounts();renderWorkspace()};el.appendChild(b)}
+}
+function renderWorkspace(){
+ const key=state.platform, num=state.selected;
+ if(!state.data[key][num]) state.data[key][num]=Array(slots).fill(null);
+ const arr=state.data[key][num];
+ const card=document.createElement("div");card.className="card";
+ card.innerHTML='<div class="cardhead"><b>'+key+' · Conto '+num+'</b><span class="count" id="count">'+arr.filter(Boolean).length+'/16 foto</span></div><div class="slots" id="slots"></div>';
+ const grid=card.querySelector("#slots");
+ arr.forEach((src,i)=>{
+   const d=document.createElement("div");d.className="slot";
+   d.innerHTML='<span class="num">'+(i+1)+'</span><span class="label">＋ FOTO</span><input type="file" accept="image/*">';
+   if(src){d.querySelector(".label").style.display="none";let img=document.createElement("img");img.src=src;d.appendChild(img);let c=document.createElement("span");c.className="clear";c.textContent="×";c.onclick=e=>{e.stopPropagation();state.data[key][num][i]=null;renderWorkspace()};d.appendChild(c)}
+   d.querySelector("input").onchange=e=>{let f=e.target.files[0];if(f){let r=new FileReader();r.onload=()=>{state.data[key][num][i]=r.result;renderWorkspace()};r.readAsDataURL(f)}};
+   grid.appendChild(d);
+ });
+ $("#workspace").replaceChildren(card);
+}
+document.querySelectorAll(".platform").forEach(b=>b.onclick=()=>{state.platform=b.dataset.p;state.selected=1;document.querySelectorAll(".platform").forEach(x=>x.classList.toggle("active",x===b));renderAccounts();renderWorkspace()});
+$("#daily").onclick=()=>{
+ let html="",grand=0;
+ for(const p of ["PU Prime","TMGM"]){const n=p==="PU Prime"?12:4;html+='<h3 style="margin:15px 0 5px">'+p+'</h3>';for(let i=1;i<=n;i++){const a=state.data[p][i]||[];const c=a.filter(Boolean).length; if(c){html+='<div class="row"><span>Conto '+i+'</span><b>'+c+' screen</b></div>')}}}
+ if(!html)html='<div class="row">Nessuno screenshot caricato.</div>';
+ $("#results").innerHTML=html;$("#result").style.display="block";$("#result").scrollIntoView({behavior:"smooth"});
+};
+$("#reset").onclick=()=>{if(confirm("Eliminare tutte le foto caricate?")){state.data={"PU Prime":{},"TMGM":{}};renderAccounts();renderWorkspace();$("#result").style.display="none"}};
+renderAccounts();renderWorkspace();
+</script>
+</body>
+</html>
